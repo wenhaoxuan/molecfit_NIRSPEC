@@ -92,3 +92,30 @@ else:
 wave = data['Wavelength']
 input_data = data['Extracted_OPT'] # original input spectra
 tel_cor_data = data['tacflux'] / np.median(data['tacflux']) # telluric corrected spectra
+
+
+## Masking regions with deep tellutic lines
+# Based on sigma clipping on (telluric model - model spectra)
+
+## Function to remove parts w/ deep telluric lines
+def remove_deep_tel(tel_model, broadmod, input_tel_cor_data, wave_data, target_name='DHTaub'):
+    if target_name == 'DHTaub':
+        low_thres_t = 2.7
+        high_thres_t = 3.5
+    elif target_name == 'DHTau':
+        low_thres = 4.0
+        high_thres = 4.0
+    res_spec = tel_model - broadmod  # model telluric - model spectra
+    trash, low, high = sigmaclip(res_spec, low_thres_t, high_thres_t)
+    print ('sigmaclip thres for telluric:')
+    print high
+    print low
+    low_inds = np.where(res_spec < low)[0]
+    # remove adjacent points to the spikes in last iteration
+    r_low_inds = low_inds + 1
+    l_low_inds = low_inds - 1
+    low_inds = reduce(np.union1d, (low_inds, r_low_inds, r_low_inds +1, l_low_inds, l_low_inds-1))
+    low_inds = low_inds[(low_inds >= 0) & (low_inds < 988)]
+    
+    ## These are the indices to remove (set to nan)
+    return low_inds
